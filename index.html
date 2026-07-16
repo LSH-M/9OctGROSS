@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Event Stamp Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #251E4F;
+    background-image: radial-gradient(circle at 20% 10%, rgba(255,182,39,0.12), transparent 40%),
+                      radial-gradient(circle at 85% 90%, rgba(255,90,95,0.12), transparent 45%);
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 24px 12px 48px;
+    font-family: 'Nunito', system-ui, sans-serif;
+  }
+  .card {
+    width: 100%; max-width: 460px;
+    background: #FFF9F0;
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.4);
+    overflow: hidden;
+    position: relative;
+  }
+  .card::before, .card::after {
+    content: ""; position: absolute; top: 108px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #251E4F;
+  }
+  .card::before { left: -11px; }
+  .card::after { right: -11px; }
+  .card-header {
+    background: #C7402D;
+    color: #FFF9F0;
+    padding: 22px 24px 26px;
+    text-align: center;
+    border-bottom: 3px dashed rgba(255,249,240,0.5);
+  }
+  .card-header h1 {
+    font-family: 'Lilita One', 'Nunito', sans-serif;
+    font-size: 28px; line-height: 1.1; letter-spacing: 0.5px;
+    margin: 0;
+  }
+  .card-header p { margin: 6px 0 0; font-size: 13px; font-weight: 600; opacity: 0.9; }
+  .progress-wrap { padding: 18px 24px 6px; }
+  .progress-label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; font-weight: 800; color: #6B5E3F;
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+  }
+  .progress-track { height: 12px; background: #EFE5D2; border-radius: 999px; overflow: hidden; }
+  .progress-fill {
+    height: 100%; background: #FFB627; border-radius: 999px; width: 0%;
+    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 12px; padding: 16px 20px 20px;
+  }
+  .slot {
+    position: relative;
+    border: 2px dashed #D8C9A8;
+    border-radius: 14px;
+    background: #FFFDF8;
+    padding: 14px 10px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.12s ease;
+    min-height: 108px;
+    font-family: 'Nunito', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .slot:hover:not(.stamped) { transform: translateY(-2px); border-color: #C7402D; }
+  .slot:focus-visible { outline: 3px solid #FFB627; outline-offset: 2px; }
+  .slot.stamped { cursor: default; border-style: solid; border-color: #EFE5D2; }
+  .slot .icon { font-size: 30px; }
+  .slot .name { font-size: 13px; font-weight: 800; color: #3A2E1F; margin-top: 4px; }
+  .slot .hint { font-size: 11px; font-weight: 600; color: #B3A583; margin-top: 2px; }
+  .seal {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .seal-inner {
+    border: 3px solid #C7402D; color: #C7402D;
+    border-radius: 50%;
+    width: 76px; height: 76px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: 'Lilita One', sans-serif;
+    font-size: 13px; letter-spacing: 1px;
+    transform: rotate(-12deg);
+    background: rgba(255,253,248,0.82);
+    box-shadow: inset 0 0 0 2px rgba(199,64,45,0.25);
+  }
+  .seal-inner small { font-family: 'Nunito', sans-serif; font-size: 9px; font-weight: 800; letter-spacing: 0; }
+  .thump { animation: thump 0.5s cubic-bezier(0.22, 1.4, 0.36, 1); }
+  @keyframes thump {
+    0% { transform: rotate(-12deg) scale(2.4); opacity: 0; }
+    60% { transform: rotate(-12deg) scale(0.92); opacity: 1; }
+    100% { transform: rotate(-12deg) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .thump { animation: none; }
+    .progress-fill { transition: none; }
+  }
+  .banner {
+    margin: 14px 20px 4px;
+    background: #FFB627;
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-weight: 800; font-size: 14px; color: #3A2E1F;
+    text-align: center;
+    animation: thump 0.5s ease;
+    display: none;
+  }
+  .banner.show { display: block; animation: none; }
+  .footer { display: flex; justify-content: center; padding: 0 20px 22px; }
+  .reset {
+    background: none; border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px; font-weight: 700; color: #B3A583;
+    text-decoration: underline;
+  }
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(20,15,45,0.6);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px; z-index: 50;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: #FFF9F0; border-radius: 16px; padding: 22px;
+    width: 100%; max-width: 320px; text-align: center;
+  }
+  .modal h2 { font-family: 'Lilita One', sans-serif; color: #3A2E1F; font-size: 20px; margin: 0 0 4px; }
+  .modal p { font-size: 13px; font-weight: 600; color: #6B5E3F; margin: 0 0 14px; }
+  .modal input {
+    width: 100%;
+    border: 2px solid #D8C9A8; border-radius: 10px;
+    padding: 10px 12px; font-size: 16px; font-family: 'Nunito', sans-serif;
+    text-align: center; letter-spacing: 2px;
+  }
+  .modal input:focus { outline: 3px solid #FFB627; border-color: #C7402D; }
+  .modal .err { color: #C7402D; font-size: 12px; font-weight: 700; margin-top: 8px; display: none; }
+  .modal .err.show { display: block; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+  .modal-btns button {
+    flex: 1; border: none; border-radius: 10px; padding: 10px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 14px; cursor: pointer;
+  }
+  .btn-stamp { background: #C7402D; color: #FFF9F0; }
+  .btn-cancel { background: #EFE5D2; color: #6B5E3F; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-header">
+    <h1 id="eventName"></h1>
+    <p id="tagline"></p>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Booths visited</span>
+      <span id="progressCount"></span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="footer">
+    <button class="reset" id="resetBtn">Reset card</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <p>Ask the booth staff for the stamp code</p>
+    <input id="codeInput" placeholder="Enter code" autocomplete="off" />
+    <div class="err" id="codeError">That code doesn't match &mdash; try again</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" id="cancelBtn">Cancel</button>
+      <button class="btn-stamp" id="stampBtn">Stamp it</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   EDIT THIS SECTION when your booths are confirmed
+   - name: booth name shown on the card
+   - icon: any emoji
+   - code: secret word/number staff give visitors (only used if
+           REQUIRE_CODES is true)
+   Add or remove booths freely — the card adapts automatically.
+   ═══════════════════════════════════════════════════════════════ */
+const EVENT_NAME = "Your Event Name";
+const TAGLINE = "Visit every booth to complete your card";
+const PRIZE_MESSAGE = "🏆 Card complete! Show this screen at the info counter to claim your prize.";
+const REQUIRE_CODES = false; // set true to make visitors enter a booth code to stamp
+
+const BOOTHS = [
+  { id: "b1", name: "Booth 1", icon: "🎪", code: "1111" },
+  { id: "b2", name: "Booth 2", icon: "🎨", code: "2222" },
+  { id: "b3", name: "Booth 3", icon: "🤖", code: "3333" },
+  { id: "b4", name: "Booth 4", icon: "🍿", code: "4444" },
+  { id: "b5", name: "Booth 5", icon: "🎮", code: "5555" },
+  { id: "b6", name: "Booth 6", icon: "🔬", code: "6666" },
+  { id: "b7", name: "Booth 7", icon: "🌱", code: "7777" },
+  { id: "b8", name: "Booth 8", icon: "🎵", code: "8888" },
+];
+/* ═══════════════ end of editable section ═══════════════ */
+
+const STORAGE_KEY = "stampcard:progress";
+let stamps = {};
+let pendingBooth = null;
+
+// Load saved progress from this device
+try {
+  stamps = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+} catch (e) { stamps = {}; }
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stamps)); } catch (e) {}
+}
+
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function render(justStampedId) {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  let count = 0;
+
+  BOOTHS.forEach(booth => {
+    const ts = stamps[booth.id];
+    if (ts) count++;
+
+    const slot = document.createElement("button");
+    slot.className = "slot" + (ts ? " stamped" : "");
+    slot.setAttribute("aria-label", ts
+      ? booth.name + ", visited at " + fmtTime(ts)
+      : booth.name + ", tap to stamp");
+
+    slot.innerHTML =
+      '<div class="icon">' + booth.icon + '</div>' +
+      '<div class="name">' + booth.name + '</div>' +
+      '<div class="hint">' + (ts ? fmtTime(ts) : "Tap to stamp") + '</div>' +
+      (ts
+        ? '<div class="seal"><div class="seal-inner' + (justStampedId === booth.id ? " thump" : "") + '">VISITED<small>' + new Date(ts).toLocaleDateString() + '</small></div></div>'
+        : "");
+
+    slot.addEventListener("click", () => handleTap(booth));
+    grid.appendChild(slot);
+  });
+
+  document.getElementById("progressCount").textContent = count + " / " + BOOTHS.length;
+  document.getElementById("progressFill").style.width = (count / BOOTHS.length * 100) + "%";
+
+  const banner = document.getElementById("banner");
+  if (count === BOOTHS.length) {
+    banner.textContent = PRIZE_MESSAGE;
+    banner.classList.add("show");
+  } else {
+    banner.classList.remove("show");
+  }
+}
+
+function applyStamp(booth) {
+  stamps[booth.id] = Date.now();
+  save();
+  render(booth.id);
+}
+
+function handleTap(booth) {
+  if (stamps[booth.id]) return;
+  if (REQUIRE_CODES) {
+    pendingBooth = booth;
+    document.getElementById("modalTitle").textContent = booth.icon + " " + booth.name;
+    document.getElementById("codeInput").value = "";
+    document.getElementById("codeError").classList.remove("show");
+    document.getElementById("modalBackdrop").classList.add("open");
+    document.getElementById("codeInput").focus();
+  } else {
+    applyStamp(booth);
+  }
+}
+
+function closeModal() {
+  pendingBooth = null;
+  document.getElementById("modalBackdrop").classList.remove("open");
+}
+
+function submitCode() {
+  if (!pendingBooth) return;
+  const entered = document.getElementById("codeInput").value.trim().toLowerCase();
+  if (entered === String(pendingBooth.code).toLowerCase()) {
+    const booth = pendingBooth;
+    closeModal();
+    applyStamp(booth);
+  } else {
+    document.getElementById("codeError").classList.add("show");
+  }
+}
+
+document.getElementById("eventName").textContent = EVENT_NAME;
+document.getElementById("tagline").textContent = TAGLINE;
+document.title = EVENT_NAME + " — Stamp Card";
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (confirm("Clear all stamps and start over?")) {
+    stamps = {};
+    save();
+    render();
+  }
+});
+document.getElementById("cancelBtn").addEventListener("click", closeModal);
+document.getElementById("stampBtn").addEventListener("click", submitCode);
+document.getElementById("codeInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") submitCode();
+  document.getElementById("codeError").classList.remove("show");
+});
+document.getElementById("modalBackdrop").addEventListener("click", e => {
+  if (e.target.id === "modalBackdrop") closeModal();
+});
+
+render();
+</script>
+</body>
+</html>
