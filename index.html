@@ -77,7 +77,12 @@
   .slot:hover:not(.stamped) { transform: translateY(-2px); border-color: #C7402D; }
   .slot:focus-visible { outline: 3px solid #FFB627; outline-offset: 2px; }
   .slot.stamped { cursor: default; border-style: solid; border-color: #EFE5D2; }
-  .slot .icon { font-size: 30px; }
+  .slot .icon { font-size: 30px; height: 44px; display: flex; align-items: center; justify-content: center; }
+  .slot .icon img {
+    max-width: 44px; max-height: 44px;
+    object-fit: contain;
+    border-radius: 8px;
+  }
   .slot .name { font-size: 13px; font-weight: 800; color: #3A2E1F; margin-top: 4px; }
   .slot .hint { font-size: 11px; font-weight: 600; color: #B3A583; margin-top: 2px; }
   .seal {
@@ -198,7 +203,10 @@
 /* ═══════════════════════════════════════════════════════════════
    EDIT THIS SECTION when your booths are confirmed
    - name: booth name shown on the card
-   - icon: any emoji
+   - icon: any emoji (shown when there is no logo)
+   - logo: OPTIONAL filename of a logo image uploaded to the repo,
+           e.g. logo: "hwf.png" — if filled in, it replaces the emoji.
+           Leave as "" to keep using the emoji.
    - code: secret word/number staff give visitors (only used if
            REQUIRE_CODES is true)
    Add or remove booths freely — the card adapts automatically.
@@ -209,11 +217,11 @@ const PRIZE_MESSAGE = "🏆 Card complete! Show this screen at the info counter 
 const REQUIRE_CODES = true; // set true to make visitors enter a booth code to stamp
 
 const BOOTHS = [
-  { id: "b1", name: "Heathcare Workforce of the Future (HWF)", icon: "🎪", code: "1" },
-  { id: "b2", name: "Booth 2", icon: "🎨", code: "2" },
-  { id: "b3", name: "Booth 3", icon: "🤖", code: "3" },
-  { id: "b4", name: "Booth 4", icon: "🍿", code: "4" },
-  { id: "b5", name: "Booth 5", icon: "🎮", code: "5" },
+  { id: "b1", name: "Healthcare Workforce of the Future (HWF)", icon: "🎪", logo: "hwf.png", code: "1" },
+  { id: "b2", name: "Booth 2", icon: "🎨", logo: "", code: "2" },
+  { id: "b3", name: "Booth 3", icon: "🤖", logo: "", code: "3" },
+  { id: "b4", name: "Booth 4", icon: "🍿", logo: "", code: "4" },
+  { id: "b5", name: "Booth 5", icon: "🎮", logo: "", code: "5" },
 ];
 /* ═══════════════ end of editable section ═══════════════ */
 
@@ -249,13 +257,41 @@ function render(justStampedId) {
       ? booth.name + ", visited at " + fmtTime(ts)
       : booth.name + ", tap to stamp");
 
-    slot.innerHTML =
-      '<div class="icon">' + booth.icon + '</div>' +
-      '<div class="name">' + booth.name + '</div>' +
-      '<div class="hint">' + (ts ? fmtTime(ts) : "Tap to stamp") + '</div>' +
-      (ts
-        ? '<div class="seal"><div class="seal-inner' + (justStampedId === booth.id ? " thump" : "") + '">VISITED<small>' + new Date(ts).toLocaleDateString() + '</small></div></div>'
-        : "");
+    const iconDiv = document.createElement("div");
+    iconDiv.className = "icon";
+    if (booth.logo) {
+      const img = document.createElement("img");
+      img.src = booth.logo;
+      img.alt = "";
+      img.onerror = () => { iconDiv.textContent = booth.icon; };
+      iconDiv.appendChild(img);
+    } else {
+      iconDiv.textContent = booth.icon;
+    }
+    slot.appendChild(iconDiv);
+
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "name";
+    nameDiv.textContent = booth.name;
+    slot.appendChild(nameDiv);
+
+    const hintDiv = document.createElement("div");
+    hintDiv.className = "hint";
+    hintDiv.textContent = ts ? fmtTime(ts) : "Tap to stamp";
+    slot.appendChild(hintDiv);
+
+    if (ts) {
+      const seal = document.createElement("div");
+      seal.className = "seal";
+      const inner = document.createElement("div");
+      inner.className = "seal-inner" + (justStampedId === booth.id ? " thump" : "");
+      inner.textContent = "VISITED";
+      const small = document.createElement("small");
+      small.textContent = new Date(ts).toLocaleDateString();
+      inner.appendChild(small);
+      seal.appendChild(inner);
+      slot.appendChild(seal);
+    }
 
     slot.addEventListener("click", () => handleTap(booth));
     grid.appendChild(slot);
@@ -283,7 +319,7 @@ function handleTap(booth) {
   if (stamps[booth.id]) return;
   if (REQUIRE_CODES) {
     pendingBooth = booth;
-    document.getElementById("modalTitle").textContent = booth.icon + " " + booth.name;
+    document.getElementById("modalTitle").textContent = booth.name;
     document.getElementById("codeInput").value = "";
     document.getElementById("codeError").classList.remove("show");
     document.getElementById("modalBackdrop").classList.add("open");
