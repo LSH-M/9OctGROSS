@@ -79,10 +79,24 @@
   .slot.stamped { cursor: default; border-style: solid; border-color: #EFE5D2; }
   .slot .icon { font-size: 30px; height: 44px; display: flex; align-items: center; justify-content: center; }
   .slot .icon img {
-    max-width: 44px; max-height: 44px;
+    max-width: 92%; max-height: 42px;
     object-fit: contain;
-    border-radius: 8px;
   }
+  .slot.wide {
+    grid-column: 1 / -1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    text-align: left;
+  }
+  .slot.wide .icon { height: auto; flex: 0 0 auto; }
+  .slot.wide .icon img { max-width: 220px; max-height: 44px; }
+  .slot.wide .name-hint { flex: 1; min-width: 0; }
+  .slot.wide .name { margin-top: 0; }
+  .slot.wide .hint { margin-top: 2px; }
+  .slot.wide .seal-inner { width: 60px; height: 60px; font-size: 10px; }
   .slot .name { font-size: 13px; font-weight: 800; color: #3A2E1F; margin-top: 4px; }
   .slot .hint { font-size: 11px; font-weight: 600; color: #B3A583; margin-top: 2px; }
   .seal {
@@ -207,6 +221,9 @@
    - logo: OPTIONAL filename of a logo image uploaded to the repo,
            e.g. logo: "hwf.png" — if filled in, it replaces the emoji.
            Leave as "" to keep using the emoji.
+   - wide: OPTIONAL, set to true if the logo is a long horizontal
+           banner (like one with a tagline) — gives it its own
+           full-width row instead of squeezing into the 2-col grid.
    - code: secret word/number staff give visitors (only used if
            REQUIRE_CODES is true)
    Add or remove booths freely — the card adapts automatically.
@@ -217,7 +234,7 @@ const PRIZE_MESSAGE = "🏆 Card complete! Show this screen at the info counter 
 const REQUIRE_CODES = true; // set true to make visitors enter a booth code to stamp
 
 const BOOTHS = [
-  { id: "b1", name: "Healthcare Workforce of the Future (HWF)", icon: "🎪", logo: "hwf.png", code: "1" },
+  { id: "b1", name: "Healthcare Workforce of the Future (HWF)", icon: "🎪", logo: "hwf-full.png", wide: true, code: "1" },
   { id: "b2", name: "Booth 2", icon: "🎨", logo: "", code: "2" },
   { id: "b3", name: "Booth 3", icon: "🤖", logo: "", code: "3" },
   { id: "b4", name: "Booth 4", icon: "🍿", logo: "", code: "4" },
@@ -251,8 +268,10 @@ function render(justStampedId) {
     const ts = stamps[booth.id];
     if (ts) count++;
 
+    const isWide = !!booth.wide;
+
     const slot = document.createElement("button");
-    slot.className = "slot" + (ts ? " stamped" : "");
+    slot.className = "slot" + (ts ? " stamped" : "") + (isWide ? " wide" : "");
     slot.setAttribute("aria-label", ts
       ? booth.name + ", visited at " + fmtTime(ts)
       : booth.name + ", tap to stamp");
@@ -273,12 +292,20 @@ function render(justStampedId) {
     const nameDiv = document.createElement("div");
     nameDiv.className = "name";
     nameDiv.textContent = booth.name;
-    slot.appendChild(nameDiv);
 
     const hintDiv = document.createElement("div");
     hintDiv.className = "hint";
     hintDiv.textContent = ts ? fmtTime(ts) : "Tap to stamp";
-    slot.appendChild(hintDiv);
+
+    if (isWide) {
+      const nameHint = document.createElement("div");
+      nameHint.className = "name-hint";
+      nameHint.appendChild(hintDiv);
+      slot.appendChild(nameHint);
+    } else {
+      slot.appendChild(nameDiv);
+      slot.appendChild(hintDiv);
+    }
 
     if (ts) {
       const seal = document.createElement("div");
